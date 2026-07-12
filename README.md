@@ -1,19 +1,22 @@
-# Cube Clear – Free Block Puzzle Game
+# Cube Clear – Free Browser Block Puzzle Game
 
-Cube Clear is a browser-based block puzzle game inspired by the block-placement puzzle genre. It is built from scratch using HTML, CSS, and JavaScript and is designed to provide a smooth experience on both desktop and mobile devices.
+Cube Clear is a fast, browser-based block puzzle game built with HTML, CSS, and vanilla JavaScript. Place blocks strategically, clear rows and columns, build combos, and chase your highest score—all without downloads or installation.
 
-> **Disclaimer:** This is an independent fan-made project created for educational and entertainment purposes. It is **not** the official Block Blast game and is **not affiliated with, endorsed by, or associated with Hungry Studio or the official Block Blast developers.**
+The game is optimized for both desktop and mobile browsers and loads instantly using modern web technologies.
+
+> **Disclaimer:** Cube Clear is an independent fan-made project created for educational and entertainment purposes. It is **not** the official Block Blast game and is **not affiliated with, endorsed by, or associated with Hungry Studio or the official Block Blast developers.**
 
 ## Features
 
-- 🧩 Drag-and-drop block placement
+- 🧩 Classic block-placement gameplay
 - 📱 Responsive design for desktop and mobile
-- 🎯 Combo scoring mechanics
+- 🎯 Combo-based scoring system
 - 💾 Local high score saving
-- ⚡ Lightweight with no external dependencies
-- 🌐 Runs directly in any modern web browser
+- ⚡ Lightweight and fast loading
+- 🌐 Runs directly in modern web browsers
+- 🖥️ No installation or account required
 
-## Technologies
+## Built With
 
 - HTML5
 - CSS3
@@ -31,16 +34,16 @@ Clone the repository:
 git clone https://github.com/BBlastapk/online.git
 ```
 
-Open `index.html` in your preferred web browser.
+Then open `index.html` in any modern web browser.
 
-No build process or installation is required.
+No build tools, package managers, or installation steps are required.
 
 ## Deployment
 
-This project is deployed using Cloudflare Pages.
+The project is deployed using **Cloudflare Pages**.
 
 ## License
 
-This repository is intended for educational and demonstration purposes.
+This project is provided for educational and demonstration purposes.
 
-All trademarks, product names, and brand names mentioned belong to their respective owners.
+All trademarks, product names, logos, and brand names mentioned in this repository belong to their respective owners.
