@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Cube Clear — Free Block Puzzle</title>
+<title>Block Online — Free Block Puzzle Game</title>
 <style>
   :root{
     --bg:#120d24;
@@ -81,16 +82,18 @@
   .cc-cell{
     background:rgba(255,255,255,0.04);
     border-radius:4px;
-    transition:background .08s ease;
+    transition:background .05s ease, box-shadow .05s ease;
   }
   .cc-cell.filled{
     box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15);
   }
   .cc-cell.ghost-valid{
-    background:rgba(139,92,246,0.35) !important;
+    background:rgba(139,92,246,0.55) !important;
+    box-shadow:inset 0 0 0 2px rgba(216,196,255,0.9) !important;
   }
   .cc-cell.ghost-invalid{
-    background:rgba(239,68,68,0.28) !important;
+    background:rgba(239,68,68,0.45) !important;
+    box-shadow:inset 0 0 0 2px rgba(255,150,150,0.85) !important;
   }
   .cc-tray{
     display:grid;
@@ -111,6 +114,9 @@
   .cc-piece-slot.empty{
     opacity:.25;
   }
+  .cc-piece-slot.dragging-source{
+    opacity:.3;
+  }
   .cc-piece-grid{
     display:grid;
     gap:2px;
@@ -129,11 +135,11 @@
     z-index:999;
     display:grid;
     gap:3px;
-    opacity:.9;
+    opacity:.95;
   }
   .cc-drag-block{
     border-radius:4px;
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.2);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25);
   }
   .cc-overlay{
     position:fixed;
@@ -187,7 +193,7 @@
 <div class="cc-wrap">
 
   <div class="cc-header">
-    <h1 class="cc-title">Cube Clear</h1>
+    <h1 class="cc-title">Block Online</h1>
     <div class="cc-scores">
       <div class="cc-score-box">
         <div class="cc-score-label">Score</div>
@@ -257,7 +263,7 @@
   var cellEls = [];
 
   try {
-    var saved = localStorage.getItem("cubeClearBest");
+    var saved = localStorage.getItem("blockOnlineBest");
     if (saved) best = parseInt(saved, 10) || 0;
   } catch(e) {}
   bestEl.textContent = best;
@@ -398,7 +404,7 @@
     }
     if (score > best){
       best = score;
-      try { localStorage.setItem("cubeClearBest", String(best)); } catch(e){}
+      try { localStorage.setItem("blockOnlineBest", String(best)); } catch(e){}
     }
     scoreEl.textContent = score;
     bestEl.textContent = best;
@@ -429,30 +435,49 @@
 
   var dragState = null;
 
+  // How far above the fingertip (in board-cell units) the piece floats on touch,
+  // so the piece isn't hidden under the player's thumb.
+  var TOUCH_LIFT_CELLS = 1.6;
+
   function startDrag(e, idx){
     e.preventDefault();
     var piece = tray[idx];
     if (!piece) return;
 
+    var boardRect = boardEl.getBoundingClientRect();
+    var cellW = boardRect.width / SIZE;
+    var cellH = boardRect.height / SIZE;
+    var blockSize = Math.min(cellW, cellH);
+
+    var dims = shapeDims(piece.cells);
+
     var dragEl = document.createElement("div");
     dragEl.className = "cc-dragging";
-    var dims = shapeDims(piece.cells);
-    dragEl.style.gridTemplateColumns = "repeat(" + dims.cols + ", 34px)";
-    dragEl.style.gridTemplateRows = "repeat(" + dims.rows + ", 34px)";
+    dragEl.style.gridTemplateColumns = "repeat(" + dims.cols + ", " + blockSize + "px)";
+    dragEl.style.gridTemplateRows = "repeat(" + dims.rows + ", " + blockSize + "px)";
     for (var r = 0; r < dims.rows; r++){
       for (var c = 0; c < dims.cols; c++){
         var b = document.createElement("div");
         var has = piece.cells.some(function(p){ return p[0] === r && p[1] === c; });
         b.className = "cc-drag-block";
-        b.style.width = "34px";
-        b.style.height = "34px";
+        b.style.width = blockSize + "px";
+        b.style.height = blockSize + "px";
         b.style.background = has ? piece.color : "transparent";
         dragEl.appendChild(b);
       }
     }
     document.body.appendChild(dragEl);
 
-    dragState = { idx: idx, piece: piece, el: dragEl, dims: dims };
+    dragState = {
+      idx: idx,
+      piece: piece,
+      el: dragEl,
+      dims: dims,
+      blockSize: blockSize,
+      slotEl: e.currentTarget
+    };
+    if (dragState.slotEl) dragState.slotEl.classList.add("dragging-source");
+
     document.body.style.userSelect = "none";
     document.body.style.webkitUserSelect = "none";
     moveDrag(e);
@@ -460,15 +485,6 @@
     document.addEventListener("pointermove", onDragMove);
     document.addEventListener("pointerup", onDragEnd);
     document.addEventListener("pointercancel", onDragEnd);
-  }
-
-  function boardCellFromPoint(x, y){
-    var rect = boardEl.getBoundingClientRect();
-    var cellW = rect.width / SIZE;
-    var cellH = rect.height / SIZE;
-    var c = Math.floor((x - rect.left) / cellW);
-    var r = Math.floor((y - rect.top) / cellH);
-    return { r: r, c: c };
   }
 
   function clearGhosts(){
@@ -483,22 +499,38 @@
     if (!dragState) return;
     var x = e.clientX, y = e.clientY;
     var isTouch = e.pointerType === "touch";
-    var liftOffset = isTouch ? 70 : 0;
+    var blockSize = dragState.blockSize;
+    var liftPx = isTouch ? blockSize * TOUCH_LIFT_CELLS : 0;
 
-    dragState.el.style.left = (x - dragState.dims.cols * 17) + "px";
-    dragState.el.style.top = (y - dragState.dims.rows * 17 - liftOffset) + "px";
+    // Top-left corner of the piece graphic, in screen coordinates.
+    // The piece is centered horizontally on the pointer, and (for touch)
+    // lifted above it vertically so the thumb doesn't cover it.
+    var pieceLeft = x - (dragState.dims.cols * blockSize) / 2;
+    var pieceTop = y - (dragState.dims.rows * blockSize) / 2 - liftPx;
+
+    dragState.el.style.left = pieceLeft + "px";
+    dragState.el.style.top = pieceTop + "px";
 
     clearGhosts();
-    var target = boardCellFromPoint(x, y - liftOffset);
-    var valid = canPlace(dragState.piece.cells, target.r, target.c);
+
+    // Convert that SAME top-left corner into a board cell, using the
+    // board's real (current) rect and cell size, not the drag-preview size.
+    var boardRect = boardEl.getBoundingClientRect();
+    var cellW = boardRect.width / SIZE;
+    var cellH = boardRect.height / SIZE;
+    var targetR = Math.round((pieceTop - boardRect.top) / cellH);
+    var targetC = Math.round((pieceLeft - boardRect.left) / cellW);
+
+    var valid = canPlace(dragState.piece.cells, targetR, targetC);
     dragState.piece.cells.forEach(function(p){
-      var rr = target.r + p[0];
-      var cc = target.c + p[1];
+      var rr = targetR + p[0];
+      var cc = targetC + p[1];
       if (rr >= 0 && rr < SIZE && cc >= 0 && cc < SIZE){
         cellEls[rr][cc].classList.add(valid ? "ghost-valid" : "ghost-invalid");
       }
     });
-    dragState.lastTarget = target;
+
+    dragState.lastTarget = { r: targetR, c: targetC };
     dragState.lastValid = valid;
   }
 
@@ -509,6 +541,7 @@
   function onDragEnd(e){
     if (!dragState) return;
     clearGhosts();
+    if (dragState.slotEl) dragState.slotEl.classList.remove("dragging-source");
     document.body.removeChild(dragState.el);
     document.body.style.userSelect = "";
     document.body.style.webkitUserSelect = "";
